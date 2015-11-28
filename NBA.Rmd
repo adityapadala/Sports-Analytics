@@ -1,0 +1,91 @@
+---
+title: "NBA"
+author: "Aditya Padal"
+date: "28 November 2015"
+output: html_document
+---
+
+Setting the working directory
+
+```{r}
+getwd()
+setwd("C:/Users/VISWANATH/Desktop/Aditya/Assignments/Predictive Modelling/project proposal")
+```
+reading the raw data into R dataframe
+
+```{r}
+NBA<-read.csv("DataClean_v1.csv")
+str(NBA)
+head(NBA)
+```
+
+Changing the datatypes of some variables
+```{r}
+NBA[!complete.cases(NBA)] #no missing values
+lapply(NBA[8:ncol(NBA)], function(x) boxplot(x)) #to check for outliers
+NBA$Contract<- factor(NBA$Contract)
+str(NBA)
+```
+
+scaling the variables
+```{r}
+for (i in 8:ncol(NBA))
+{
+  NBA[,i] <- scale(NBA[,i])
+}
+
+head(NBA)
+summary(NBA)
+```
+
+checking for correlation
+```{r}
+tmp<-round(cor(NBA[,8:ncol(NBA)],y=NULL),2)
+tmp[upper.tri(tmp)] <- NA
+diag(tmp)<- NA
+tmp
+NBA_cor<- NBA[,c(-2,-5,-6,-12,-15,-17,-18,-22,-26,-32)]
+head(NBA_cor)
+names(NBA_cor)[names(NBA_cor)=="Annual.Salary..."] <- "Salary"
+```
+cross validation
+```{r}
+set.seed(1)
+train <- sample(1:nrow(NBA_cor), nrow(NBA_cor)*0.75)
+test = -train
+training<- NBA_cor[train,]
+testing<- NBA_cor[test,]
+nrow(training)
+nrow(testing)
+
+test_Salary <- testing$Salary
+```
+running the full linear model
+```{r}
+model_nba <- lm(Salary~., data = training)
+summary(model_nba)
+pred_model_nba <- predict(model_nba,testing)
+RMSE = sqrt(sum((test_Salary - pred_model_nba)^2))/nrow(testing)
+RMSE
+ss_total <- sum((test_Salary - mean(testing$Salary))^2)
+ss_residuals <- sum((test_Salary - pred_model_nba)^2)
+testing_Rsquare <- 1- (ss_residuals/ss_total)
+testing_Rsquare
+
+
+
+###with selected variables
+model_nba <- lm(Salary~Contract+Pos+Age+GS+MP+FG+FGC+X3PC+X2PC+EFG+FT+ORB+
+                  DRB+AST+STL, data = training)
+summary(model_nba)
+pred_model_nba <- predict(model_nba,testing)
+RMSE = sqrt(sum((test_Salary - pred_model_nba)^2))/nrow(testing)
+RMSE
+ss_total <- sum((test_Salary - mean(testing$Salary))^2)
+ss_residuals <- sum((test_Salary - pred_model_nba)^2)
+testing_Rsquare <- 1- (ss_residuals/ss_total)
+testing_Rsquare
+
+```
+
+
